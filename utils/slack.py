@@ -53,7 +53,7 @@ def send_main_message(block_list: List, channel_id, client):
 
 def send_thread(block_list: List, channel_id, thread_id, client):
     try:
-        batches = batched(block_list, 50)
+        batches = batched(block_list, 51)
         # Call the conversations.list method using the WebClient
         for batch in batches:
             result = client.chat_postMessage(
@@ -174,7 +174,7 @@ def build_block_list(title_strings, paper_strings):
         )
 
     thread_blocks = []
-    for paper in paper_strings[:50]:
+    for paper in paper_strings[:51]:
         thread_blocks.append(
             {"type": "section", "text": {"type": "mrkdwn", "text": paper}}
         )
