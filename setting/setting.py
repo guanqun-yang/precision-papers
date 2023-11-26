@@ -1,6 +1,6 @@
 import pathlib
 
-base_path = pathlib.Path("/Users/yang/precision-papers")
+base_path = pathlib.Path(".").absolute().parent
 debug = True
 
 # parameters to control the behavior of recommendation system
