@@ -167,8 +167,8 @@ def build_block_list(title_strings, paper_strings):
         {"type": "divider"},
     ]
 
-    # for paper in title_strings[:10]:
-    for paper in title_strings[:49]:
+    for paper in title_strings[:10]:
+    # for paper in title_strings[:49]:
         slack_block_list.append(
             {"type": "section", "text": {"type": "mrkdwn", "text": paper}}
         )
