@@ -1,6 +1,6 @@
 import pathlib
 
-debug = False
+debug = True
 
 # parameters to control the behavior of recommendation system
 topk = 125
