@@ -226,7 +226,7 @@ sorted_pids = [
 # return the top-k papers
 # the records have to have "arxiv_id", "abstract", "authors", "title" columns
 papers = list()
-for pid in sorted_pids[:setting.topk]:
+for i, pid in enumerate(sorted_pids[:setting.topk]):
     item = pdb[pid]
 
     papers.append(
@@ -238,5 +238,6 @@ for pid in sorted_pids[:setting.topk]:
         }
     )
 
-push_to_slack(papers)
+    if (i + 1) % 50 == 0:
+        push_to_slack(papers[-50:])
 
