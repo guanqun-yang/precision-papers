@@ -1,0 +1,6 @@
+tqdm
+pyzotero
+scikit-learn
+slack_sdk
+feedparser
+sqlitedict

@@ -1,0 +1,215 @@
+import logging
+import os
+import random
+import sys
+import time
+from random import shuffle
+
+import numpy as np
+from pyzotero import zotero
+from scipy import sparse
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+from tqdm import trange
+
+from setting import setting
+from utils.arxiv import (
+    get_response,
+    parse_response
+)
+from utils.db import (
+    get_papers_db,
+    get_metas_db,
+)
+from utils.slack import (
+    push_to_slack
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(name)s - %(levelname)s - %(asctime)s - %(message)s",
+    datefmt="%Y-%d-%m-%I-%M-%S"
+)
+
+system_messages = list()
+
+pdb = get_papers_db(flag='c')
+mdb = get_metas_db(flag='c')
+
+# fetch up to 100 papers for 20 times, leading up to 2000 papers in total
+# stop fetching papers when the timestamp is beyond 24 hours of UTC 0:00 today
+
+current_time = time.time()
+search_query = 'cat:cs.LG+OR+cat:cs.CL+OR+cat:cs.AI+OR+cat:cs.NE'
+
+n_papers = len(pdb)
+
+for k in trange(0, 2100, 100):
+    response = get_response(
+        search_query=search_query,
+        start_index=k,
+    )
+
+    time.sleep(1 + random.uniform(1, 4))
+
+    # after parsing, there will be some new fields, including "_time", "_id", "_idv"
+    items = parse_response(
+        response,
+    )
+
+    if current_time - items[0]["_time"] > setting.time_delta:
+        message = f"THERE ARE NO PAPERS IN THE PAST {setting.time_delta} SECONDS FOR QUERY={search_query}"
+        logging.info(message)
+        break
+
+    for item in items:
+        pdb[item['_id']] = item
+        mdb[item['_id']] = {'_time': item['_time']}
+
+##################################################
+
+n_new_papers = len(pdb) - n_papers
+logging.info(f"NUMBER OF NEW PAPERS: {n_new_papers}\n")
+
+if n_new_papers == 0 and not setting.debug:
+    push_to_slack(
+        [
+            {
+                "title": f"NO NEW PAPER IN PAST {setting.time_delta} SECONDS",
+                "abstract": "",
+                "arxiv_id": f"QUERY={search_query}",
+                "authors": [""],
+            }
+        ]
+    )
+    sys.exit()
+
+##################################################
+# used for TF-IDF feature extraction
+def make_corpus(training: bool):
+    assert isinstance(training, bool)
+
+    # determine which papers we will use to build tfidf
+    if training:
+        # crop to a random subset of papers
+        keys = list(pdb.keys())
+        shuffle(keys)
+    else:
+        keys = pdb.keys()
+
+    # yield the abstracts of the papers
+    for p in keys:
+        d = pdb[p]
+        author_str = ' '.join([a['name'] for a in d['authors']])
+        yield ' '.join([d['title'], d['summary'], author_str])
+
+##################################################
+# Zotero
+# initialize client
+zot = zotero.Zotero(
+    library_id="9338796",
+    library_type="user",
+    api_key=os.getenv("ZOTERO_API_KEY")
+)
+def retrieve_relevant_papers():
+    collection_id = "FS6NV5KD"
+    items = [
+        item for item in zot.collection_items(collection_id)
+        if item["data"]["itemType"] not in ["attachment", "note"]
+    ]
+
+    for item in items:
+        title = item["data"]["title"]
+        abstract = item["data"]["abstractNote"]
+        author = " ".join(["{} {}".format(p["firstName"], p["lastName"]) for p in item["data"]["creators"]])
+
+        yield " ".join([title, abstract, author])
+
+##################################################
+
+feature_extractor = TfidfVectorizer(
+    input='content',
+    encoding='utf-8',
+    decode_error='replace',
+    strip_accents='unicode',
+    lowercase=True,
+    analyzer='word',
+    stop_words='english',
+    token_pattern=r'(?u)\b[a-zA-Z_][a-zA-Z0-9_]+\b',
+    ngram_range=(1, 2),
+    max_features=20000,
+    norm='l2',
+    use_idf=True,
+    smooth_idf=True,
+    sublinear_tf=True,
+    max_df=5,
+    min_df=1
+)
+
+# note that as there are enough papers in the database
+# we do not worry about whether the fitted and transformed corpus are same or not
+logging.info("Fitting feature extractor....")
+feature_extractor.fit(make_corpus(training=True))
+
+logging.info("Extracting features...")
+x_candidate = feature_extractor.transform(make_corpus(training=False)).astype(np.float32)
+x_positive = feature_extractor.transform(retrieve_relevant_papers()).astype(np.float32)
+
+logging.info("Saving features to disk...")
+positive_dict = {
+    "x": x_positive
+}
+candidate_dict = {
+    'pids': list(pdb.keys()),
+    'x': x_candidate,
+    'vocab': feature_extractor.vocabulary_,
+    'idf': feature_extractor._tfidf.idf_,
+}
+
+##################################################
+# caching features to pickle files
+
+# save_positives(positive_dict)
+# save_features(candidate_dict)
+
+##################################################
+
+X_positive = positive_dict["x"]
+X_candidate = candidate_dict["x"]
+
+n_positive = X_positive.shape[0]
+n_candidate = X_candidate.shape[0]
+
+X = sparse.vstack([X_positive, X_candidate])
+y = np.concatenate([
+    np.ones(n_positive),
+    np.zeros(n_candidate)
+])
+
+# create recommendation
+clf = LinearSVC(class_weight='balanced', verbose=False, max_iter=10000, tol=1e-6, C=0.01)
+clf.fit(X, y)
+
+scores = clf.decision_function(X)
+sorted_pids = [
+    candidate_dict["pids"][idx-n_positive] for idx in np.argsort(scores)[::-1]
+    if idx not in np.arange(n_positive)
+]
+
+# return the top-k papers
+# the records have to have "arxiv_id", "abstract", "authors", "title" columns
+papers = list()
+for pid in sorted_pids[:setting.topk]:
+    item = pdb[pid]
+
+    papers.append(
+        {
+            "title": item["title"],
+            "abstract": item["summary"],
+            "authors": [p["name"] for p in item["authors"]],
+            "arxiv_id": item["_id"]
+        }
+    )
+
+push_to_slack(papers)
+

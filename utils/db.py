@@ -9,10 +9,12 @@ import sqlite3, zlib, pickle, tempfile
 from sqlitedict import SqliteDict
 from contextlib import contextmanager
 
+from setting import setting
+
 # -----------------------------------------------------------------------------
 # global configuration
 
-DATA_DIR = 'data'
+DATA_DIR = setting.base_path / 'data'
 
 # -----------------------------------------------------------------------------
 # utilities for safe writing of a pickle file
@@ -144,5 +146,17 @@ def save_features(features):
 def load_features():
     """ loads the features dict from disk """
     with open(FEATURES_FILE, 'rb') as f:
+        features = pickle.load(f)
+    return features
+
+POSITIVES_FILE = os.path.join(DATA_DIR, 'positives.p')
+
+def save_positives(features):
+    safe_pickle_dump(features, POSITIVES_FILE)
+
+
+def load_positives():
+    """ loads the features dict from disk """
+    with open(POSITIVES_FILE, 'rb') as f:
         features = pickle.load(f)
     return features

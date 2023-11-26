@@ -1,17 +1,16 @@
-import time
-import random
 import logging
-import pandas as pd
+import random
+import time
 
 from tqdm import trange
-from aslite.arxiv import (
+
+from utils.arxiv import (
     get_response,
     parse_response
 )
-
-from sklearn.svm import SVC
-from sklearn.feature_extraction.text import (
-    TfidfVectorizer,
+from utils.db import (
+    get_papers_db,
+    get_metas_db,
 )
 
 logging.basicConfig(
@@ -19,6 +18,9 @@ logging.basicConfig(
     format="%(name)s - %(levelname)s - %(asctime)s - %(message)s",
     datefmt="%Y-%d-%m-%I-%M-%S"
 )
+
+pdb = get_papers_db(flag='c')
+mdb = get_metas_db(flag='c')
 
 # fetch up to 100 papers for 20 times, leading up to 2000 papers in total
 # stop fetching papers when the timestamp is beyond 24 hours of UTC 0:00 today
@@ -33,6 +35,9 @@ for k in trange(0, 2100, 100):
         start_index=k,
     )
 
+    time.sleep(1 + random.uniform(1, 4))
+
+    # after parsing, there will be some new fields, including "_time", "_id", "_idv"
     items = parse_response(
         response,
     )
@@ -43,15 +48,9 @@ for k in trange(0, 2100, 100):
         break
 
     for item in items:
-        records.append(
-            {
-                "number": item["_id"],
-                "title": item["title"],
-                "abstract": item["summary"],
-                "author": ", ".join(author["name"] for author in item["authors"]),
-                "time": item["_time"],
-                "url": item["link"]
-            }
-        )
+        pdb[item['_id']] = item
+        mdb[item['_id']] = {'_time': item['_time']}
 
-paper_df = pd.DataFrame(records)
+
+
+

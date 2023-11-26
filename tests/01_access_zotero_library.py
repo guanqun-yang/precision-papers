@@ -23,7 +23,8 @@ for item in items:
         {
             "title": item["data"]["title"],
             "abstract": item["data"]["abstractNote"],
-            "url": item["data"]["url"]
+            "author": ", ".join(["{} {}".format(p["firstName"], p["lastName"]) for p in item["data"]["creators"]]),
+            "url": item["data"]["url"],
         }
     )
 
