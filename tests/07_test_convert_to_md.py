@@ -17,14 +17,34 @@ def render_paper(paper_entry: dict, idx: int) -> str:
     abstract = paper_entry["abstract"]
     # get the authors
     authors = paper_entry["authors"]
-    paper_string = f'## {idx}. [{title}]({arxiv_url}) <a id="link{idx}"></a>\n'
+    paper_string = f'## {idx}. [{title}]({arxiv_url}) <a name="link{idx}"></a>\n'
     paper_string += f"**ArXiv ID:** {arxiv_id}\n"
     paper_string += f'**Authors:** {", ".join(authors)}\n\n'
     paper_string += f"**Abstract:** {abstract}\n\n"
 
     return paper_string + "\n---\n"
 
+##################################################
 
+# def render_paper(paper_entry: dict, idx: int) -> str:
+#     # get the arxiv id
+#     arxiv_id = paper_entry["arxiv_id"]
+#     # get the title
+#     title = paper_entry["title"]
+#     # get the arxiv url
+#     arxiv_url = f"https://arxiv.org/abs/{arxiv_id}"
+#     # get the abstract
+#     abstract = paper_entry["abstract"]
+#     # get the authors
+#     authors = paper_entry["authors"]
+#     paper_string = f"<div id='link{idx}'/>\n" + f"## {idx}. [{title}]({arxiv_url})\n"
+#     paper_string += f"**ArXiv ID:** {arxiv_id}\n"
+#     paper_string += f'**Authors:** {", ".join(authors)}\n\n'
+#     paper_string += f"**Abstract:** {abstract}\n\n"
+#
+#     return paper_string + "\n---\n"
+
+##################################################
 def render_title_and_author(paper_entry: dict, idx: int) -> str:
     title = paper_entry["title"]
     authors = paper_entry["authors"]
@@ -63,7 +83,7 @@ with tqdm(total=len(pdb)) as pbar:
     for _, item in pdb.items():
         papers.append(
             {
-                "title": item["title"],
+                "title": " ".join(item["title"].split()),
                 "abstract": item["summary"],
                 "authors": [p["name"] for p in item["authors"]],
                 "arxiv_id": item["_id"]
