@@ -1,8 +1,10 @@
-import json
+import pathlib
+from datetime import datetime
 
 from tqdm import tqdm
-from datetime import datetime
+
 from utils.db import get_papers_db
+
 
 def render_paper(paper_entry: dict, idx: int) -> str:
     # get the arxiv id
@@ -73,6 +75,7 @@ with tqdm(total=len(pdb)) as pbar:
             break
 
 output = render_md_string(papers)
+pathlib.Path("output.md").write_text(output)
 
 
 
