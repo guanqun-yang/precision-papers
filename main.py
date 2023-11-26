@@ -241,3 +241,8 @@ for i, pid in enumerate(sorted_pids[:setting.topk]):
     if (i + 1) % 50 == 0:
         push_to_slack(papers[-50:])
 
+# push remaining papers
+push_to_slack(papers[-len(papers) % 50:])
+
+
+
