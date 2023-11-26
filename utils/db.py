@@ -102,9 +102,9 @@ flag='r': open for read-only
 """
 
 # stores info about papers, and also their lighter-weight metadata
-PAPERS_DB_FILE = os.path.join(DATA_DIR, 'papers.db')
+PAPERS_DB_FILE = DATA_DIR / 'papers.db'
 # stores account-relevant info, like which tags exist for which papers
-DICT_DB_FILE = os.path.join(DATA_DIR, 'dict.db')
+DICT_DB_FILE = DATA_DIR / 'dict.db'
 
 def get_papers_db(flag='r', autocommit=True):
     assert flag in ['r', 'c']

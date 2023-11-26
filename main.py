@@ -4,6 +4,9 @@ import random
 import sys
 import time
 from random import shuffle
+import zlib
+import pickle
+import sqlite3
 
 import numpy as np
 from pyzotero import zotero
@@ -12,18 +15,18 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
 from tqdm import trange
 
+from sqlitedict import SqliteDict
+
 from setting import setting
 from utils.arxiv import (
     get_response,
     parse_response
 )
-from utils.db import (
-    get_papers_db,
-    get_metas_db,
-)
 from utils.slack import (
     push_to_slack
 )
+
+##################################################
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,8 +34,32 @@ logging.basicConfig(
     datefmt="%Y-%d-%m-%I-%M-%S"
 )
 
-system_messages = list()
+##################################################
+class CompressedSqliteDict(SqliteDict):
+    """ overrides the encode/decode methods to use zlib, so we get compressed storage """
 
+    def __init__(self, *args, **kwargs):
+
+        def encode(obj):
+            return sqlite3.Binary(zlib.compress(pickle.dumps(obj, pickle.HIGHEST_PROTOCOL)))
+
+        def decode(obj):
+            return pickle.loads(zlib.decompress(bytes(obj)))
+
+        super().__init__(*args, **kwargs, encode=encode, decode=decode)
+
+def get_papers_db(flag='r', autocommit=True):
+    assert flag in ['r', 'c']
+    pdb = CompressedSqliteDict("data/papers.db", tablename='papers', flag=flag, autocommit=autocommit)
+    return pdb
+
+def get_metas_db(flag='r', autocommit=True):
+    assert flag in ['r', 'c']
+    mdb = SqliteDict("data/papers.db", tablename='metas', flag=flag, autocommit=autocommit)
+    return mdb
+
+
+##################################################
 pdb = get_papers_db(flag='c')
 mdb = get_metas_db(flag='c')
 

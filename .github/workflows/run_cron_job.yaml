@@ -3,9 +3,9 @@ name: Run arXiv Periodically
 on:
   schedule:
     # * is a special character in YAML; it has to be quoted
-    # - cron:  '0 13 * * *'
+    - cron:  '0 13 * * *'
     # run every 30 minutes
-    - cron: '30 * * * *'
+    # - cron: '30 * * * *'
   workflow_dispatch:
 
 permissions:

@@ -5,4 +5,4 @@ debug = True
 
 # parameters to control the behavior of recommendation system
 topk = 100
-time_delta = 1800
+time_delta = 86400
