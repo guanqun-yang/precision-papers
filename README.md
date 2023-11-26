@@ -81,7 +81,7 @@ sorted_df = df.sort_values("y_proba", ascending=False).iloc[:50]
 
 ## Miscellaneous Notes
 
--   arXiv is only updated 5 days a week, and it is updated in batches rather than incrementally. It may not make sense to query arXiv for updates frequently.
+-   arXiv is only updated 5 days a week (from Sunday through Thursday, according to [doc](https://info.arxiv.org/help/availability.html)). We could also learn more about official announcements [here](https://blog.arxiv.org/) and site availability [here](https://status.arxiv.org/).
 
 -   Manual creation of `data/papers.db` may be necessary to kick-start the project:
 
