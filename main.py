@@ -285,7 +285,7 @@ for i, pid in enumerate(sorted_pids[:setting.topk]):
 
     papers.append(
         {
-            "title": item["title"],
+            "title": " ".join(item["title"].split()),
             "abstract": item["summary"],
             "authors": [p["name"] for p in item["authors"]],
             "arxiv_id": item["_id"]
@@ -300,7 +300,6 @@ push_to_slack(papers[-(len(papers) % 50):])
 
 # update output.md
 markdown_string = render_md_string(papers)
-with open("data/output.md", "w") as fp:
-    fp.write(markdown_string)
+pathlib.Path("data/output.md").write_text(markdown_string)
 
 
