@@ -94,7 +94,7 @@ def render_paper(paper_entry: Paper, counter: int) -> str:
         + "|*"
         + str(counter)
         + ". "
-        + title.replace("&", "&amp;").replace("\n", " ")
+        + " ".join(title.split()).replace("&", "&amp;")
         + "*>\n"
     )
 
@@ -134,7 +134,7 @@ def render_title(paper_entry: Paper, counter: int) -> str:
             + "|*"
             + str(counter)
             + ". "
-            + title.replace("&", "&amp;").replace("\n", " ")
+            + " ".join(title.split()).replace("&", "&amp;")
             + "*>\n"
     )
 
@@ -167,7 +167,8 @@ def build_block_list(title_strings, paper_strings):
         {"type": "divider"},
     ]
 
-    for paper in title_strings[:10]:
+    # for paper in title_strings[:10]:
+    for paper in title_strings[:50]:
         slack_block_list.append(
             {"type": "section", "text": {"type": "mrkdwn", "text": paper}}
         )
