@@ -1,21 +1,22 @@
 import logging
 import os
+import pathlib
+import pickle
 import random
+import sqlite3
 import sys
 import time
-from random import shuffle
 import zlib
-import pickle
-import sqlite3
+from datetime import datetime
+from random import shuffle
 
 import numpy as np
 from pyzotero import zotero
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
-from tqdm import trange
-
 from sqlitedict import SqliteDict
+from tqdm import trange
 
 from setting import setting
 from utils.arxiv import (
@@ -57,6 +58,59 @@ def get_metas_db(flag='r', autocommit=True):
     assert flag in ['r', 'c']
     mdb = SqliteDict("data/papers.db", tablename='metas', flag=flag, autocommit=autocommit)
     return mdb
+
+
+##################################################
+# create markdown page
+def render_paper(paper_entry: dict, idx: int) -> str:
+    # get the arxiv id
+    arxiv_id = paper_entry["arxiv_id"]
+    # get the title
+    title = paper_entry["title"]
+    # get the arxiv url
+    arxiv_url = f"https://arxiv.org/abs/{arxiv_id}"
+    # get the abstract
+    abstract = paper_entry["abstract"]
+    # get the authors
+    authors = paper_entry["authors"]
+    paper_string = f'## {idx}. [{title}]({arxiv_url}) <a id="link{idx}"></a>\n'
+    paper_string += f"**ArXiv ID:** {arxiv_id}\n"
+    paper_string += f'**Authors:** {", ".join(authors)}\n\n'
+    paper_string += f"**Abstract:** {abstract}\n\n"
+
+    return paper_string + "\n---\n"
+
+
+def render_title_and_author(paper_entry: dict, idx: int) -> str:
+    title = paper_entry["title"]
+    authors = paper_entry["authors"]
+    paper_string = f"{idx}. [{title}](#link{idx})\n"
+    paper_string += f'**Authors:** {", ".join(authors)}\n'
+    return paper_string
+
+
+def render_md_string(papers):
+    output_string = (
+        "# Personalized Daily Arxiv Papers "
+        + datetime.today().strftime("%m/%d/%Y")
+        + "\nTotal relevant papers: "
+        + str(len(papers))
+        + "\n\n"
+        + "Table of contents with paper titles:\n\n"
+    )
+    title_strings = [
+        render_title_and_author(paper, i)
+        for i, paper in enumerate(papers)
+    ]
+    output_string = output_string + "\n".join(title_strings) + "\n---\n"
+    # render each paper
+    paper_strings = [
+        render_paper(paper, i) for i, paper in enumerate(papers)
+    ]
+    # join all papers into one string
+    output_string = output_string + "\n".join(paper_strings)
+
+    return output_string
 
 
 ##################################################
@@ -244,5 +298,8 @@ for i, pid in enumerate(sorted_pids[:setting.topk]):
 # push remaining papers
 push_to_slack(papers[-(len(papers) % 50):])
 
+# update output.md
+markdown_string = render_md_string(papers)
+pathlib.Path("output.md").write_text(markdown_string)
 
 

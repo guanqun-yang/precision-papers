@@ -1,6 +1,8 @@
 import pathlib
 
-debug = False
+# base_path is only used for local debugging purposes
+base_path = pathlib.Path().absolute().parent
+debug = True
 
 # parameters to control the behavior of recommendation system
 topk = 125
