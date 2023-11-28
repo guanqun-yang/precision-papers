@@ -284,8 +284,14 @@ sorted_pids = [
 # return the top-k papers
 # the records have to have "arxiv_id", "abstract", "authors", "title" columns
 papers = list()
-for i, pid in enumerate(sorted_pids[:setting.topk]):
+
+
+
+for pid in sorted_pids:
     item = pdb[pid]
+
+    if current_time - item["_time"] > setting.time_delta:
+        continue
 
     papers.append(
         {
@@ -296,14 +302,12 @@ for i, pid in enumerate(sorted_pids[:setting.topk]):
         }
     )
 
-    if (i + 1) % 50 == 0:
-        push_to_slack(papers[-50:])
 
-# push remaining papers
-push_to_slack(papers[-(len(papers) % 50):])
+for i in range(0, setting.topk+1, 50):
+    push_to_slack(papers[i:i+50])
 
 # update output.md
-markdown_string = render_md_string(papers)
+markdown_string = render_md_string(papers[:setting.topk])
 pathlib.Path("data/output.md").write_text(markdown_string)
 
 
