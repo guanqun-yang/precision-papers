@@ -125,7 +125,7 @@ mdb = get_metas_db(flag='c')
 # stop fetching papers when the timestamp is beyond 24 hours of UTC 0:00 today
 
 current_time = time.time()
-search_query = 'cat:cs.LG+OR+cat:cs.CL+OR+cat:cs.AI+OR+cat:cs.NE'
+search_query = 'cat:cs.LG+OR+cat:cs.CL+OR+cat:cs.AI+OR+cat:cs.NE+cat:cs.CR'
 
 n_papers = len(pdb)
 
