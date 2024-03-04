@@ -5,5 +5,5 @@ base_path = pathlib.Path().absolute().parent
 debug = False
 
 # parameters to control the behavior of the recommendation system
-topk = 125
+topk = 250
 time_delta = 86400
